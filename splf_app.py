@@ -59,7 +59,7 @@ def generate_rivalry_matrix(matches_json, assignments):
         owner_map[team + ' AFC'] = owner
 
     matches = matches_json['matches']
-    rivalries = {} # Key: tuple(OwnerA, OwnerB), Value: [WinsA, Draws, WinsB]
+    rivalries = {} 
 
     for m in matches:
         if m['status'] == 'FINISHED':
@@ -71,9 +71,9 @@ def generate_rivalry_matrix(matches_json, assignments):
                 owner_home = owner_map[home_raw]
                 owner_away = owner_map[away_raw]
                 
-                if owner_home == owner_away: continue # Skip internal scrimmages (same owner)
+                if owner_home == owner_away: continue 
 
-                # Sort names alphabetically so "Adam vs Jarrod" is same as "Jarrod vs Adam"
+                # Sort names alphabetically 
                 if owner_home < owner_away:
                     pair = (owner_home, owner_away)
                     # 0=HomeWin(Owner1), 1=Draw, 2=AwayWin(Owner2)
@@ -81,8 +81,6 @@ def generate_rivalry_matrix(matches_json, assignments):
                 else:
                     pair = (owner_away, owner_home)
                     # Flip the result because we flipped the names
-                    # Original: Home(2) vs Away(1). If Home wins, Owner 2 wins.
-                    # We stored as (1, 2). So index 2 is Owner 2 win.
                     if m['score']['winner'] == 'HOME_TEAM': res_idx = 2
                     elif m['score']['winner'] == 'AWAY_TEAM': res_idx = 0
                     else: res_idx = 1
@@ -129,107 +127,4 @@ def generate_rivalry_matrix(matches_json, assignments):
 st.title("⚽ SPLF Dashboard")
 
 # 1. Get Data
-data_standings, data_matches = fetch_live_data()
-assignments, history_archive = load_local_files()
-
-if data_standings and assignments is not None:
-    
-    # 2. Process Standings
-    pl_table = data_standings['standings'][0]['table']
-    epl_df = pd.DataFrame(pl_table)
-    
-    # Cleanup Names
-    epl_df['Team'] = epl_df['team'].apply(lambda x: x['name'].replace(' FC', '').replace(' AFC', '').strip())
-    epl_df = epl_df.rename(columns={'playedGames': 'GP', 'won': 'W', 'draw': 'D', 'lost': 'L', 'goalDifference': 'GD', 'points': 'Pts'})
-    epl_df = epl_df[['Team', 'Pts', 'GP', 'W', 'D', 'L', 'GD']]
-    
-    # 3. Merge with your Draft
-    merged_df = pd.merge(assignments, epl_df, on="Team", how="left").fillna(0)
-
-    # 4. Calculate Scores
-    owner_stats = merged_df.groupby("Owner").agg({
-        'Pts': 'sum',
-        'GP': 'sum',
-        'W': 'sum',
-        'D': 'sum',
-        'L': 'sum',
-        'GD': 'sum'
-    }).reset_index()
-    
-    # Calculate Money
-    total_league_points = owner_stats['Pts'].sum()
-    quota = total_league_points / 5
-    owner_stats['Money'] = (owner_stats['Pts'] - quota) * 10
-    
-    # Sort Leaderboard
-    owner_stats = owner_stats.sort_values("Pts", ascending=False).reset_index(drop=True)
-
-    # --- TABS FOR MAJOR SECTIONS ---
-    tab_main, tab_h2h = st.tabs(["📊 League Dashboard", "⚔️ Head-to-Head"])
-
-    with tab_main:
-        # SECTION 1: SPLF STANDINGS
-        st.header("🏆 The SPLF Table")
-        
-        # Display Money format properly
-        display_owner = owner_stats.copy()
-        display_owner['Money'] = display_owner['Money'].apply(lambda x: f"${x:,.2f}")
-        
-        st.dataframe(
-            display_owner,
-            use_container_width=True,
-            hide_index=True,
-            column_order=["Owner", "Pts", "Money", "GP", "W", "D", "L", "GD"],
-            column_config={
-                "Pts": st.column_config.NumberColumn("Points", format="%d"),
-                "GD": st.column_config.NumberColumn("GD", format="%d")
-            }
-        )
-
-        st.divider()
-
-        # SECTION 2: REAL EPL TABLE (With Owners)
-        st.header("🌍 Real EPL Standings (By Owner)")
-        st.caption("The actual Premier League table, tagged with SPLF Owners.")
-        
-        # Sort by real EPL points
-        merged_df = merged_df.sort_values(["Pts", "GD"], ascending=False)
-        
-        st.dataframe(
-            merged_df,
-            use_container_width=True,
-            hide_index=True,
-            column_order=["Team", "Owner", "Pts", "GP", "W", "D", "L", "GD"]
-        )
-
-        st.divider()
-
-        # SECTION 3: HISTORY
-        st.header("📜 League History (2015-2025)")
-        if not history_archive.empty:
-            st.dataframe(history_archive, use_container_width=True, hide_index=True)
-        else:
-            st.warning("No history file found.")
-
-    with tab_h2h:
-        st.header("⚔️ Rivalry Matrix")
-        st.caption("Cumulative Head-to-Head records for the current season.")
-        
-        rivalry_df = generate_rivalry_matrix(data_matches, assignments)
-        
-        if not rivalry_df.empty:
-            st.dataframe(
-                rivalry_df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Dominance %": st.column_config.ProgressColumn(
-                        "Dominance",
-                        format="%.0f%%",
-                        min_value=0,
-                        max_value=100,
-                    ),
-                }
-            )
-        else:
-            st.info("No head-to-head matches played yet.")
+data_

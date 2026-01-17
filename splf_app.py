@@ -34,7 +34,6 @@ def load_local_files():
         return None, None
     
     try:
-        # Load the RAW history database (Season, Owner, Team, Rank, Pts, etc.)
         history_raw = pd.read_csv("data/SPLF - HistTables.csv")
     except FileNotFoundError:
         history_raw = pd.DataFrame() 
@@ -42,13 +41,8 @@ def load_local_files():
     return assignments, history_raw
 
 def calculate_historical_stats(raw_df):
-    """
-    Turns raw season logs into the 'Purple Table' Summary.
-    Required Columns in CSV: Season, Owner, Team, Rank, Pts, W, D, L, GD
-    """
     if raw_df.empty: return pd.DataFrame()
 
-    # 1. Basic Aggregates
     summary = raw_df.groupby("Owner").agg({
         'Pts': 'sum',
         'W': 'sum',
@@ -57,35 +51,26 @@ def calculate_historical_stats(raw_df):
         'GD': 'sum'
     })
 
-    # 2. Calculate Historical Money (Per Season Logic)
     season_stats = raw_df.groupby(['Season', 'Owner'])['Pts'].sum().reset_index()
-    
-    # Calculate Quota per season
     season_totals = season_stats.groupby('Season')['Pts'].sum().reset_index()
     season_totals = season_totals.rename(columns={'Pts': 'Season_Total'})
     
-    # Merge totals back to calculate quota
     season_stats = pd.merge(season_stats, season_totals, on='Season')
     season_stats['Quota'] = season_stats['Season_Total'] / 5
     season_stats['Money'] = (season_stats['Pts'] - season_stats['Quota']) * 10
     
-    # Sum Money to Summary
     summary['Money'] = season_stats.groupby('Owner')['Money'].sum()
 
-    # 3. Team Medals (1st=4, 2nd=3, 3rd=2, 4th=1)
     raw_df['Team_Medals'] = 0
     raw_df.loc[raw_df['Rank'] == 1, 'Team_Medals'] = 4
     raw_df.loc[raw_df['Rank'] == 2, 'Team_Medals'] = 3
     raw_df.loc[raw_df['Rank'] == 3, 'Team_Medals'] = 2
     raw_df.loc[raw_df['Rank'] == 4, 'Team_Medals'] = 1
-    
     summary['Team Medals'] = raw_df.groupby('Owner')['Team_Medals'].sum()
 
-    # 4. Relegations (Rank 18, 19, 20)
     raw_df['Relegated'] = raw_df['Rank'].apply(lambda x: 1 if x >= 18 else 0)
-    summary['Teams Relagated'] = raw_df.groupby('Owner')['Relegated'].sum()
+    summary['Teams Relegated'] = raw_df.groupby('Owner')['Relegated'].sum()
 
-    # 5. Player Medals (1st Place in SPLF Season = 5, etc.)
     season_stats['Rank_In_Season'] = season_stats.groupby('Season')['Pts'].rank(ascending=False, method='min')
     
     def get_player_medals(rank):
@@ -99,12 +84,11 @@ def calculate_historical_stats(raw_df):
     season_stats['Player_Medals'] = season_stats['Rank_In_Season'].apply(get_player_medals)
     summary['Player Medals'] = season_stats.groupby('Owner')['Player_Medals'].sum()
 
-    # 6. Final Formatting & Ranking
     summary = summary.reset_index()
     summary = summary.sort_values("Money", ascending=False).reset_index(drop=True)
-    summary.index += 1  # Start rank at 1
+    summary.index += 1  
     summary.index.name = "Rank"
-    summary = summary.reset_index() # Make Rank a column
+    summary = summary.reset_index() 
 
     return summary
 
@@ -223,14 +207,18 @@ if data_standings and assignments is not None:
         
         st.dataframe(
             display_owner,
-            use_container_width=True,
+            use_container_width=False, # CHANGED: Auto-fit to content width
             hide_index=True,
             column_order=cols_order,
-            height=250, 
+            height=210, # Compact height
             column_config={
                 "Money": st.column_config.NumberColumn("Money", format="$%.2f"),
-                "Pts": st.column_config.NumberColumn("Pts", format="%d"),
-                "GD": st.column_config.NumberColumn("GD", format="%d")
+                "Pts": st.column_config.NumberColumn("Pts", format="%d", width="small"),
+                "GD": st.column_config.NumberColumn("GD", format="%d", width="small"),
+                "GP": st.column_config.NumberColumn("GP", width="small"),
+                "W": st.column_config.NumberColumn("W", width="small"),
+                "D": st.column_config.NumberColumn("D", width="small"),
+                "L": st.column_config.NumberColumn("L", width="small"),
             }
         )
 
@@ -241,35 +229,45 @@ if data_standings and assignments is not None:
         merged_df = merged_df.sort_values(["Pts", "GD"], ascending=False)
         st.dataframe(
             merged_df,
-            use_container_width=True,
+            use_container_width=False, # CHANGED: Auto-fit
             hide_index=True,
             column_order=["Team", "Owner", "Pts", "GP", "W", "D", "L", "GD"],
-            height=740
+            height=740,
+            column_config={
+                "Pts": st.column_config.NumberColumn("Pts", format="%d", width="small"),
+                "GD": st.column_config.NumberColumn("GD", format="%d", width="small"),
+                "GP": st.column_config.NumberColumn("GP", width="small"),
+                "W": st.column_config.NumberColumn("W", width="small"),
+                "D": st.column_config.NumberColumn("D", width="small"),
+                "L": st.column_config.NumberColumn("L", width="small"),
+            }
         )
 
         st.divider()
 
-        # SECTION 3: AUTOMATED HISTORY (Calculated Live)
+        # SECTION 3: AUTOMATED HISTORY
         st.header("All-Time SPLF Player Stats")
         st.caption("11 seasons - 2014/15 thru 2024/25")
 
         if not history_raw.empty:
-            # RUN THE CALCULATOR
             history_summary = calculate_historical_stats(history_raw)
 
-            # Display exactly like the Purple Table in your screenshot
             st.dataframe(
                 history_summary,
-                use_container_width=True, 
+                use_container_width=False, # CHANGED: Auto-fit
                 hide_index=True,          
                 height=250,
-                column_order=["Rank", "Owner", "Money", "Pts", "W", "D", "L", "GD", "Team Medals", "Player Medals", "Teams Relagated"],
+                column_order=["Rank", "Owner", "Money", "Pts", "W", "D", "L", "GD", "Team Medals", "Player Medals", "Teams Relegated"],
                 column_config={
-                    "Rank": st.column_config.NumberColumn("Rank", format="%d"),
-                    "Money": st.column_config.NumberColumn("Money", format="$ %d"), # No decimals like screenshot
+                    "Rank": st.column_config.NumberColumn("Rank", format="%d", width="small"),
+                    "Money": st.column_config.NumberColumn("Money", format="$ %d"), 
                     "Player Medals": st.column_config.NumberColumn("Player Medals", format="%d"),
                     "Team Medals": st.column_config.NumberColumn("Team Medals", format="%d"),
-                    "Pts": st.column_config.NumberColumn("Pts"),
+                    "Pts": st.column_config.NumberColumn("Pts", width="small"),
+                    "W": st.column_config.NumberColumn("W", width="small"),
+                    "D": st.column_config.NumberColumn("D", width="small"),
+                    "L": st.column_config.NumberColumn("L", width="small"),
+                    "GD": st.column_config.NumberColumn("GD", width="small"),
                 }
             )
         else:
@@ -281,7 +279,7 @@ if data_standings and assignments is not None:
         if not rivalry_df.empty:
             st.dataframe(
                 rivalry_df,
-                use_container_width=True,
+                use_container_width=False, # CHANGED: Auto-fit
                 hide_index=True,
                 height=600,
                 column_config={

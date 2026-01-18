@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 
 # --- PAGE SETUP ---
+# We keep layout="wide" to use the full screen on desktop
 st.set_page_config(page_title="SPLF Live", layout="wide", page_icon="⚽")
 
 # --- LOAD SECRETS ---
@@ -207,12 +208,13 @@ if data_standings and assignments is not None:
         
         st.dataframe(
             display_owner,
-            use_container_width=False, # CHANGED: Auto-fit to content width
+            use_container_width=False, # Keeps it tight
             hide_index=True,
             column_order=cols_order,
-            height=210, # Compact height
+            height=210, 
             column_config={
-                "Money": st.column_config.NumberColumn("Money", format="$%.2f"),
+                "Owner": st.column_config.TextColumn("Owner", width="medium"),
+                "Money": st.column_config.NumberColumn("Money", format="$%d", width="small"), # No decimals
                 "Pts": st.column_config.NumberColumn("Pts", format="%d", width="small"),
                 "GD": st.column_config.NumberColumn("GD", format="%d", width="small"),
                 "GP": st.column_config.NumberColumn("GP", width="small"),
@@ -229,11 +231,13 @@ if data_standings and assignments is not None:
         merged_df = merged_df.sort_values(["Pts", "GD"], ascending=False)
         st.dataframe(
             merged_df,
-            use_container_width=False, # CHANGED: Auto-fit
+            use_container_width=False, # Keeps it tight
             hide_index=True,
             column_order=["Team", "Owner", "Pts", "GP", "W", "D", "L", "GD"],
             height=740,
             column_config={
+                "Team": st.column_config.TextColumn("Team", width="medium"),
+                "Owner": st.column_config.TextColumn("Owner", width="small"),
                 "Pts": st.column_config.NumberColumn("Pts", format="%d", width="small"),
                 "GD": st.column_config.NumberColumn("GD", format="%d", width="small"),
                 "GP": st.column_config.NumberColumn("GP", width="small"),
@@ -254,15 +258,17 @@ if data_standings and assignments is not None:
 
             st.dataframe(
                 history_summary,
-                use_container_width=False, # CHANGED: Auto-fit
+                use_container_width=False, # Keeps it tight
                 hide_index=True,          
                 height=250,
                 column_order=["Rank", "Owner", "Money", "Pts", "W", "D", "L", "GD", "Team Medals", "Player Medals", "Teams Relegated"],
                 column_config={
                     "Rank": st.column_config.NumberColumn("Rank", format="%d", width="small"),
-                    "Money": st.column_config.NumberColumn("Money", format="$ %d"), 
-                    "Player Medals": st.column_config.NumberColumn("Player Medals", format="%d"),
-                    "Team Medals": st.column_config.NumberColumn("Team Medals", format="%d"),
+                    "Owner": st.column_config.TextColumn("Owner", width="small"),
+                    "Money": st.column_config.NumberColumn("Money", format="$%d", width="small"), # No decimals
+                    "Player Medals": st.column_config.NumberColumn("Plyr Medals", format="%d", width="small"),
+                    "Team Medals": st.column_config.NumberColumn("Tm Medals", format="%d", width="small"),
+                    "Teams Relegated": st.column_config.NumberColumn("Rel", format="%d", width="small"),
                     "Pts": st.column_config.NumberColumn("Pts", width="small"),
                     "W": st.column_config.NumberColumn("W", width="small"),
                     "D": st.column_config.NumberColumn("D", width="small"),
@@ -279,15 +285,20 @@ if data_standings and assignments is not None:
         if not rivalry_df.empty:
             st.dataframe(
                 rivalry_df,
-                use_container_width=False, # CHANGED: Auto-fit
+                use_container_width=False, # Keeps it tight
                 hide_index=True,
                 height=600,
                 column_config={
+                    "Matchup": st.column_config.TextColumn("Matchup", width="medium"),
+                    "Leader": st.column_config.TextColumn("Leader", width="small"),
+                    "Record": st.column_config.TextColumn("Record", width="medium"),
+                    "Total Games": st.column_config.NumberColumn("Gms", width="small"),
                     "Dominance %": st.column_config.ProgressColumn(
                         "Dominance",
                         format="%.0f%%",
                         min_value=0,
                         max_value=100,
+                        width="medium"
                     ),
                 }
             )
